@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 function dbConnection(){
     mongoose.connect('mongodb+srv://backendsiam:siam1256@shop-pay.4qy3mwr.mongodb.net/todo-backend')
-  .then(() => console.log('Database connected'));
+  .then(() => console.log('Database connected')).catch((error) => {
+    console.log("Database Connection Faild", error)
+  });
 }
 
 module.exports = dbConnection

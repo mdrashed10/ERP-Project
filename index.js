@@ -4,6 +4,7 @@ const app = express()
 const dbConnection = require('./configuration/dbConnection.js')
 const routes = require("./routes")
 var cors = require('cors');
+const PORT = process.env.PORT
 
 app.use(cors())
 dbConnection()
@@ -14,4 +15,4 @@ app.get('/', function (req, res) {
   res.send('Todo Application')
 })
 
-app.listen(8000)
+app.listen(PORT)
