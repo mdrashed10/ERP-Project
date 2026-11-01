@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 function dbConnection(){
-    mongoose.connect('mongodb+srv://backendsiam:siam1256@shop-pay.4qy3mwr.mongodb.net/todo-backend')
+    mongoose.connect('mongodb+srv://ERP-admin:DAWZgl8SqHuRMjNT@cluster0.xxdfgx8.mongodb.net/erp')
   .then(() => console.log('Database connected')).catch((error) => {
     console.log("Database Connection Faild", error)
   });

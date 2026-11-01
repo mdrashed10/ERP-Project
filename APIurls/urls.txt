@@ -1,0 +1,17 @@
+1/ http://localhost:8000/api/v1
+
+
+
+
+postman 
+{
+    "username":"",
+    "email":"",
+    "password":"",
+    "profilePicture":"",
+    "address":"",
+    "phone":"",
+    "gender":"",
+    "dob":"",
+    "role":""
+}
