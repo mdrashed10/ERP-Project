@@ -19,26 +19,6 @@ function formatUser(user) {
   };
 }
 
-const findUserByParamId = async (id, res) => {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    res.status(400).json({
-      success: false,
-      message: "Invalid user id",
-    });
-    return null;
-  }
-
-  const user = await userModel.findById(id);
-  if (!user) {
-    res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-    return null;
-  }
-
-  return user;
-};
 
 const getAllUserController = async (req, res) => {
   try {
@@ -67,146 +47,122 @@ const getAllUserController = async (req, res) => {
 };
 
 const getSingleUserController = async (req, res) => {
+  const userId = req.params.id
   try {
-    const user = await findUserByParamId(req.params.id, res);
-    if (!user) {
-      return;
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "User get successfully",
-      data: formatUser(user),
-    });
+    const user = await userModel.findOne({
+      _id: userId
+    })
+    res.status(200).json({
+        success: true,
+        message: "User get successfully",
+        data: user,
+    })
   } catch (error) {
-    console.error("Dashboard Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+      res.status(409).json({
+        success: false,
+        message: error.message,
+        userId: userId
+      })
   }
-};
+}
 
 const approvedUserController = async (req, res) => {
+  const userId = req.params.id
   try {
-    const user = await findUserByParamId(req.params.id, res);
-    if (!user) {
-      return;
-    }
-
-    if (user.status) {
-      return res.status(400).json({
-        success: false,
-        message: "User is already approved",
-      });
-    }
-
-    user.status = true;
-    await user.save({ validateBeforeSave: false });
-
-    return res.status(200).json({
-      success: true,
-      message: "User approved successfully",
-      data: formatUser(user),
-    });
+    const user = await userModel.findOne({
+      _id: userId
+    })
+    user.status = true
+    await user.save()
+    res.status(200).json({
+        success: true,
+        message: "User approved successfully",
+        data: user,
+    })
   } catch (error) {
-    console.error("Dashboard Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+      res.status(409).json({
+        success: false,
+        message: error.message,
+        userId: userId
+      })
   }
-};
+}
 
 const deactiveUserController = async (req, res) => {
+  const userId = req.params.id
   try {
-    const user = await findUserByParamId(req.params.id, res);
-    if (!user) {
-      return;
-    }
-
-    if (String(user._id) === String(req.user.id)) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot deactivate your own account",
-      });
-    }
-
-    if (user.role === "admin") {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot deactivate an admin",
-      });
-    }
-
-    if (!user.status) {
-      return res.status(400).json({
-        success: false,
-        message: "User is already deactivated",
-      });
-    }
-
-    user.status = false;
-    await user.save({ validateBeforeSave: false });
-    await userModel.findByIdAndUpdate(user._id, {
-      $unset: { refreshToken: 1 },
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "User deactivated successfully",
-      data: formatUser(user),
-    });
+    const user = await userModel.findOne({
+      _id: userId
+    })
+    user.status = false
+    await user.save()
+    res.status(200).json({
+        success: true,
+        message: "User deactivated successfully",
+        data: user,
+    })
   } catch (error) {
-    console.error("Dashboard Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+      res.status(409).json({
+        success: false,
+        message: error.message,
+        userId: userId
+      })
   }
-};
+}
 
 const deleteUserController = async (req, res) => {
+  const userId = req.params.id
   try {
-    const user = await findUserByParamId(req.params.id, res);
-    if (!user) {
-      return;
-    }
-
-    if (String(user._id) === String(req.user.id)) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot delete your own account",
-      });
-    }
-
-    if (user.role === "admin") {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot delete an admin",
-      });
-    }
-
-    await userModel.findByIdAndDelete(user._id);
-
-    return res.status(200).json({
-      success: true,
-      message: "User deleted successfully",
-      data: formatUser(user),
-    });
+    const user = await userModel.findOneAndDelete({
+      _id: userId
+    })
+    res.status(200).json({
+        success: true,
+        message: "User deleted successfully",
+        data: user,
+    })
   } catch (error) {
-    console.error("Dashboard Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+      res.status(409).json({
+        success: false,
+        message: error.message,
+        userId: userId
+      })
   }
-};
+}
+
+const searchUserController = async (req, res) => {
+  const search = req.query.search
+  try {
+    const loggedinUserId = req.user.id
+    const users = await userModel.find({
+      _id: { $ne: loggedinUserId },
+      $or: [
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { address: { $regex: search, $options: "i" } },
+      ]
+    })
+    if (!users.length) {
+      throw new Error("No user found")
+    }
+    res.status(200).json({
+        success: true,
+        message: "Users search successfully",
+        data: {
+          users: users.map(formatUser),
+          length: users.length,
+        },
+    })
+  } catch (error) {
+      res.status(409).json({
+        success: false,
+        message: error.message,
+        search: search
+      })
+  }
+}
 
 module.exports = {
-  getAllUserController,
-  getSingleUserController,
-  approvedUserController,
-  deactiveUserController,
-  deleteUserController,
+  getAllUserController, getSingleUserController, approvedUserController, deactiveUserController, deleteUserController, searchUserController
 };
