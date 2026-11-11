@@ -131,10 +131,21 @@ const deleteUserController = async (req, res) => {
 }
 
 const searchUserController = async (req, res) => {
-  const search = req.query.search
+   const search = String(req.query.search || "").trim()
   try {
+   
+    const page = Number(req.query.page ?? 1)
+    if (!Number.isInteger(page) || page < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be a positive integer",
+      })
+    }
+
+    const limit = 5
+    const skip = (page - 1) * limit
     const loggedinUserId = req.user.id
-    const users = await userModel.find({
+    const userFilter = {
       _id: { $ne: loggedinUserId },
       $or: [
         { username: { $regex: search, $options: "i" } },
@@ -142,8 +153,12 @@ const searchUserController = async (req, res) => {
         { phone: { $regex: search, $options: "i" } },
         { address: { $regex: search, $options: "i" } },
       ]
-    })
-    if (!users.length) {
+    }
+    const [users, length] = await Promise.all([
+      userModel.find(userFilter).sort({ _id: 1 }).skip(skip).limit(limit),
+      userModel.countDocuments(userFilter),
+    ])
+    if (!length) {
       throw new Error("No user found")
     }
     res.status(200).json({
@@ -151,7 +166,10 @@ const searchUserController = async (req, res) => {
         message: "Users search successfully",
         data: {
           users: users.map(formatUser),
-          length: users.length,
+          length,
+          page,
+          limit,
+          totalPages: Math.ceil(length / limit),
         },
     })
   } catch (error) {
